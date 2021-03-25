@@ -3,7 +3,7 @@
 // @author teirm
 // @date   2021-03-22
 
-#include "../dependencies/ParseFlags/src/cpp/parse_flags.hpp"
+#include <cpp/parse_flags.hpp>
 
 #include <iostream>
 

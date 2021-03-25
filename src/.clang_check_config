@@ -1,0 +1,6 @@
+-I./src
+-I../dependencies/ParseFlags/include
+-Wall
+-Wextra
+-std=c++17
+-Wno-c++17-extensions
