@@ -7,9 +7,7 @@
 
 #include <common/net_common.hpp>
 #include <common/utilities.hpp>
-
-#include <iostream>
-#include <cstring>
+#include <common/log_util.hpp>
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -46,7 +44,7 @@ int bind_socket(const char *address, const char *port, bool is_blocking)
     
     rc = getaddrinfo(address, port, &hints, &result);
     if (rc) {
-        std::cerr << "getaddrinfo: " << gai_strerror(rc) << '\n';
+        log(LogPriority::ERROR, "getaddrinfo error: %s\n", gai_strerror(rc));
         return rc;
     }
 
@@ -68,9 +66,7 @@ int bind_socket(const char *address, const char *port, bool is_blocking)
     freeaddrinfo(result);
     
     if (rp == nullptr) {
-        // check for error case  unable to bind any results
-        std::cerr << "unable to bind any sockets for " 
-                  << address << " " << port << '\n';
+        log(LogPriority::ERROR, "unable to bind any results for %s:%s\n", address, port);
         return 1;
     }
     return socket_fd;
@@ -87,7 +83,7 @@ int listen_socket(int socket_fd, int backlog)
 {
     int rc = listen(socket_fd, backlog);
     if (rc != 0) {
-        std::cerr << "listen: " << strerror(errno) << '\n';
+        log(LogPriority::ERROR, "listen error: %s\n", strerror(errno));
     }
     return rc;
 }
@@ -122,7 +118,7 @@ int connect_socket(const char *address, const char *port, bool is_blocking)
 
     rc = getaddrinfo(address, port, &hints, &result);
     if (rc) { 
-        std::cerr << "getaddrinfo: " << gai_strerror(rc) << '\n';
+        log(LogPriority::ERROR, "getaddrinfo error: %s\n", gai_strerror(rc));
         return rc;
     }
 
@@ -145,8 +141,7 @@ int connect_socket(const char *address, const char *port, bool is_blocking)
     if (rp == nullptr) {
         // check for error condition where no connections could be 
         // made
-        std::cerr << "unable to connect any sockets for "
-                  << address << " " << port << '\n';
+        log(LogPriority::ERROR, "unable to connect any results for %s:%s\n", address, port);
         return 1;
     }
     return socket_fd;
