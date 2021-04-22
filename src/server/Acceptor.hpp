@@ -4,10 +4,10 @@
 // 
 // 20 April 2021
 
+#include <common/utilities.hpp>
 
 #include <string>
 #include <thread>
-#include <future>
 #include <atomic>
 
 #include <sys/socket.h>
@@ -17,8 +17,6 @@ public:
     Acceptor(int socket_fd):
         socket_(socket_fd),
         epoll_fd_(0),
-        read_pipe_(0),
-        write_pipe_(0),
         is_running_(false) { }
     Acceptor(const Acceptor &rhs) = delete;
     Acceptor& operator=(const Acceptor &rhs) = delete;
@@ -30,8 +28,7 @@ public:
 private:
     int socket_;
     int epoll_fd_;
-    int read_pipe_;
-    int write_pipe_;
+    Channel stop_channel; 
     std::atomic<bool> is_running_;
     std::thread acceptor_;
 

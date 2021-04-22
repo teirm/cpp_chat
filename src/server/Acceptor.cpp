@@ -33,16 +33,6 @@
 //
 int Acceptor::start()
 {
-    int pipe_fd[2];
-    int rc = pipe(pipe_fd);
-    if (rc) {
-        log(LogPriority::ERROR, "Unable to create pipe fd: %s\n", strerror(errno));
-        return -1;
-    }
-    
-    read_pipe_ = pipe_fd[0];
-    write_pipe_ = pipe_fd[1];
-    
     // epoll ignores the size argument but it must be
     // greater than zero.
     epoll_fd_ = epoll_create(1);
@@ -54,9 +44,9 @@ int Acceptor::start()
     // add the accepting socket and the read end of the pipe to the epoll instance
     // for monitoring
     struct epoll_event ev;
-    ev.data.fd = read_pipe_;
+    ev.data.fd = stop_channel.read_pipe;
     ev.events = EPOLLIN;
-    rc = epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, read_pipe_, &ev);
+    int rc = epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, stop_channel.read_pipe, &ev);
     if (rc == -1) {
         log(LogPriority::ERROR, "Unable to add read pipe to epoll instance: %s\n", strerror(errno));
         return -1;
@@ -85,7 +75,7 @@ int Acceptor::stop()
 {
     is_running_ = false;
     // write a single byte into the pipe to trigger stop
-    int n_written = write(write_pipe_, "s", 1);
+    int n_written = write(stop_channel.write_pipe, "s", 1);
     if (n_written != 1) {
         log(LogPriority::ERROR, "Error writing to stop pipe\n");
         return -1;
@@ -144,8 +134,8 @@ void Acceptor::accept_connections()
         for (int i = 0; i < n_ready; i++) {
             if (evlist[i].events & EPOLLIN) {
                 if (evlist[i].data.fd == socket_) {
-                     
-                } else if (evlist[i].data.fd == read_pipe_)  {
+                    handle_new_connection();  
+                } else if (evlist[i].data.fd == stop_channel.read_pipe)  {
                     // don't have to do anything since the is_running flag should
                     // be set to false now. 
                     log(LogPriority::INFO, "Stop event seen -- acceptor stopping\n");  
