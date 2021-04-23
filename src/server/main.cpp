@@ -1,4 +1,4 @@
-// server_main.cpp
+// main.cpp
 //
 // Server main for argument parsing and thread
 // initialization. Handles connections and 
@@ -14,15 +14,15 @@
 
 #include <cpp/parse_flags.hpp>
 
-#include <thread>
-#include <map>
 #include <string>
+
+#include <sys/epoll.h>
 
 using namespace parse_flags;
 
 const int serverBacklog = 20;
 
-// server main 
+// @brief Server main argument processing and begins connection handling 
 int main(int argc, char *argv[])
 {
     std::string port;
@@ -37,22 +37,7 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
     
-    int server_socket = bind_socket(address.c_str(), port.c_str(), false);
-    if (server_socket) {
-        log(LogPriority::ERROR, "Unable to bind socket %d\n", server_socket);
-        exit(EXIT_FAILURE);
-    }
+     
     
-    rc = listen_socket(server_socket, serverBacklog);
-    if (rc) {
-        log(LogPriority::ERROR, "Unable to mark socket for listening: %d\n", rc);
-        exit(EXIT_FAILURE);
-    }
-    
-    Acceptor acceptor(server_socket);
-    std::thread acceptor_thread(std::ref(acceptor));
 
-    // do server things here
-
-    acceptor_thread.join();
 }

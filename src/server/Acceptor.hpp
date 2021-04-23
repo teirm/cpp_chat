@@ -4,6 +4,8 @@
 // 
 // 20 April 2021
 
+#pragma once
+
 #include <common/utilities.hpp>
 
 #include <string>
@@ -14,19 +16,23 @@
 
 class Acceptor final {
 public:
-    Acceptor(int socket_fd):
+    Acceptor(int socket_fd, int server_epoll_fd):
         socket_(socket_fd),
+        server_epoll_fd_(server_epoll_fd),
         epoll_fd_(0),
         is_running_(false) { }
-    Acceptor(const Acceptor &rhs) = delete;
-    Acceptor& operator=(const Acceptor &rhs) = delete;
-    ~Acceptor();
+    Acceptor():Acceptor(0, 0) { }
+    ~Acceptor() { }
+    
+    void setSocket(int socket_fd) { socket_ = socket_fd; }
+    void setServerEpoll(int server_epoll_fd) { server_epoll_fd_ = server_epoll_fd; }
     
     int start();
     int stop();
 
 private:
     int socket_;
+    int server_epoll_fd_;
     int epoll_fd_;
     Channel stop_channel; 
     std::atomic<bool> is_running_;
