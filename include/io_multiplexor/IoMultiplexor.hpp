@@ -11,19 +11,24 @@
 #include <atomic>
 
 typedef unsigned int io_mplex_flags_t;
-enum class IoMultiplexorFlags : io_mplex_flags_t {
-    MPLEX_IN        = 0x1,
-    MPLEX_OUT       = 0x2,
-    MPLEX_ONESHOT   = 0x4,
-    MPLEX_EOF       = 0x8
+enum IoMultiplexorFlags : io_mplex_flags_t 
+{
+   MPLEX_IN        = 0x1,
+   MPLEX_OUT       = 0x2,
+   MPLEX_ONESHOT   = 0x4,
+   MPLEX_EOF       = 0x8
 };
 
-typedef std::pair<int, io_mplex_flags_t> io_mplex_fd_info_t;
+struct io_mplex_fd_info_t {
+    int fd;
+    io_mplex_flags_t flags;
+    io_mplex_flags_t filters; 
+};
 
 class IoMultiplexor {
 public:
     IoMultiplexor():
-        sys_instance_fd_(0),
+        instance_fd_(0),
         n_events_(0) {}
     virtual ~IoMultiplexor() {}
     
@@ -40,6 +45,6 @@ public:
 
 protected:
     // system specific file descriptor;
-    int sys_instance_fd_;
+    int instance_fd_;
     std::atomic<int> n_events_;
 };

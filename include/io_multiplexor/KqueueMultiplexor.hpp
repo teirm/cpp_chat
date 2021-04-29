@@ -7,6 +7,8 @@
 
 #include "IoMultiplexor.hpp"
 
+#include <utility>
+
 class KqueueMultiplexor final: public IoMultiplexor  {
 public: 
     KqueueMultiplexor();
@@ -19,4 +21,10 @@ public:
     int remove(const int fd);
     int remove(const std::vector<int> &fd_list);
     int remove(std::vector<int> &&fd_list);
+
+private:
+    // TODO: Can this be handled carefull
+    // by forward declaring the enum class and
+    // defining them in the .cpp file?
+    int mplex_to_kqueue(io_mplex_flags_t mplex_values); 
 };
