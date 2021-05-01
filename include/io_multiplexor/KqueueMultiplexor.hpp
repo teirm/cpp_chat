@@ -11,16 +11,18 @@
 
 class KqueueMultiplexor final: public IoMultiplexor  {
 public: 
-    KqueueMultiplexor();
+    KqueueMultiplexor(unsigned max_events);
     ~KqueueMultiplexor();
     
-    int wait(int timeout);
-    int add(const io_mplex_fd_info_t &fd_info);
-    int add(const std::vector<io_mplex_fd_info_t> &fd_list);
-    int add(std::vector<io_mplex_fd_info_t> &&fd_list);
-    int remove(const int fd);
-    int remove(const std::vector<int> &fd_list);
-    int remove(std::vector<int> &&fd_list);
+    virtual int wait(struct timespec *timeout, std::vector<io_mplex_fd_info_t> &events) override;
+    
+    virtual int add(const io_mplex_fd_info_t &fd_info) override;
+    virtual int add(const std::vector<io_mplex_fd_info_t> &fd_list) override;
+    virtual int add(std::vector<io_mplex_fd_info_t> &&fd_list) override;
+    
+    virtual int remove(const int fd) override;
+    virtual int remove(const std::vector<int> &fd_list) override;
+    virtual int remove(std::vector<int> &&fd_list) override;
 
 private:
     // TODO: Can this be handled carefull

@@ -6,11 +6,13 @@
 //
 // 22-April-2021
 
+#include <time.h>
+
 #include <vector>
 #include <utility>
 #include <atomic>
 
-typedef unsigned int io_mplex_flags_t;
+typedef int io_mplex_flags_t;
 enum IoMultiplexorFlags : io_mplex_flags_t 
 {
    MPLEX_IN        = 0x1,
@@ -20,25 +22,30 @@ enum IoMultiplexorFlags : io_mplex_flags_t
 };
 
 struct io_mplex_fd_info_t {
-    int fd;
     io_mplex_flags_t flags;
     io_mplex_flags_t filters; 
+    unsigned long fd;
 };
 
 class IoMultiplexor {
 public:
-    IoMultiplexor():
+    IoMultiplexor(unsigned max_events):
         instance_fd_(0),
+        max_events_(max_events),
         n_events_(0) {}
     virtual ~IoMultiplexor() {}
     
     IoMultiplexor(const IoMultiplexor &rhs) = delete;
     IoMultiplexor& operator()(const IoMultiplexor& rhs) = delete;
 
-    virtual int wait(int timeout)                                   = 0;
+    virtual unsigned get_events() const { return n_events_.load(); }
+
+    virtual int wait(struct timespec *timeout, std::vector<io_mplex_fd_info_t> &events) = 0;
+    
     virtual int add(const io_mplex_fd_info_t &fd_info)              = 0;
     virtual int add(const std::vector<io_mplex_fd_info_t> &fd_list) = 0;
     virtual int add(std::vector<io_mplex_fd_info_t> &&fd_list)      = 0;
+   
     virtual int remove(const int fd)                                = 0;
     virtual int remove(const std::vector<int> &fd_list)             = 0;
     virtual int remove(std::vector<int> &&fd_list)                  = 0;
@@ -46,5 +53,6 @@ public:
 protected:
     // system specific file descriptor;
     int instance_fd_;
-    std::atomic<int> n_events_;
+    unsigned max_events_;
+    std::atomic<unsigned> n_events_;
 };

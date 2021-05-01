@@ -23,10 +23,11 @@ using namespace std;
 //
 // @throws std::runtime_error if unable to 
 //         create kqueue
-KqueueMultiplexor::KqueueMultiplexor() 
+KqueueMultiplexor::KqueueMultiplexor(unsigned max_events):
+    IoMultiplexor(max_events)
 {
     instance_fd_ = kqueue();
-    if (sys_instance_fd_ == -1) {
+    if (instance_fd_ == -1) {
         throw std::runtime_error("Unable to create kqueue");
     }
 }
@@ -38,14 +39,39 @@ KqueueMultiplexor::~KqueueMultiplexor()
     }
 }
 
+int KqueueMultiplexor::wait(struct timespec *timeout, std::vector<io_mplex_fd_info_t> &events) 
+{
+    struct kevent event_list[max_events_]; 
+
+    int count = kevent(instance_fd_, nullptr, 0, event_list, max_events_, timeout);
+    if (count == -1 || count == 0) { 
+        return count; 
+    }
+    
+    events.reserve(count);
+    for (int i = 0; i < count; i++) {
+        struct kevent &event = event_list[i]; 
+        events.push_back({event.flags, event.filter, event.ident});
+    }
+    return 0;
+}
+
 int KqueueMultiplexor::add(const io_mplex_fd_info_t &fd_info) 
 {
     int flags = mplex_to_kqueue(fd_info.flags);
     int filters = mplex_to_kqueue(fd_info.filters);
     
     struct kevent event;
-    EV_SET(&event, fd_info.fd, filters, flags, 0, 0, nullptr);
-    return kevent(instance_fd_, &event, 1, nullptr, 0, nullptr);
+    EV_SET(&event, fd_info.fd, filters, flags | EV_ADD, 0, 0, nullptr);
+    
+    int rc =  kevent(instance_fd_, &event, 1, nullptr, 0, nullptr);
+    if (rc) {
+        log(LogPriority::ERROR, "Failed to add event to kqueue\n");
+    } else {
+        n_events_++;
+    }
+    
+    return rc;
 }
 
 int KqueueMultiplexor::add(const std::vector<io_mplex_fd_info_t> &fd_list)
@@ -58,9 +84,18 @@ int KqueueMultiplexor::add(const std::vector<io_mplex_fd_info_t> &fd_list)
     for (auto &fd_info : fd_list) {
         flags = mplex_to_kqueue(fd_info.flags);
         filters = mplex_to_kqueue(fd_info.filters);
-        EV_SET(&change_list[index], fd_info.fd, filters, flags, 0, 0, nullptr);
+        EV_SET(&change_list[index], fd_info.fd, filters, flags | EV_ADD, 0, 0, nullptr);
+        index++;
     }
-    return kevent(instance_fd_, change_list.get(), size, nullptr, 0, nullptr); 
+
+    int rc = kevent(instance_fd_, change_list.get(), size, nullptr, 0, nullptr);
+    if (rc) {
+        log(LogPriority::ERROR, "Failed to add event list to kqueue\n");
+    } else {
+        n_events_.fetch_add(size);
+    }
+
+    return rc;
 }
 
 int KqueueMultiplexor::add(std::vector<io_mplex_fd_info_t> &&fd_list)
@@ -70,12 +105,38 @@ int KqueueMultiplexor::add(std::vector<io_mplex_fd_info_t> &&fd_list)
 
 int KqueueMultiplexor::remove(const int fd) 
 {
-    return -1;
+    struct kevent event;
+    // add the EVFILT_READ filter incase there is anything remaining to be 
+    EV_SET(&event, fd, EVFILT_READ, EV_DELETE, 0, 0, nullptr);
+    
+    int rc = kevent(instance_fd_, &event, 1, nullptr, 0, nullptr);
+    if (rc) {
+        log(LogPriority::ERROR, "Failed to delete fd from kqueue\n");
+    } else {
+        n_events_--;
+    }
+
+    return rc;
 }
 
 int KqueueMultiplexor::remove(const std::vector<int> &fd_list) 
 {
-
+    size_t size = fd_list.size();
+    auto change_list = unique_ptr<struct kevent []>(new struct kevent[size]);
+    int index = 0;
+    for (auto &fd : fd_list) {
+        EV_SET(&change_list[index], fd, EVFILT_READ, EV_DELETE, 0, 0, nullptr);
+        index++;
+    }
+    
+    int rc = kevent(instance_fd_, change_list.get(), size, nullptr, 0, nullptr);
+    if (rc ) {
+        log(LogPriority::ERROR, "Failed to remove events from kqueue\n");
+    } else {
+        n_events_.fetch_sub(size);
+    }
+    
+    return rc;
 }
 
 int KqueueMultiplexor::remove(std::vector<int> &&fd_list)
