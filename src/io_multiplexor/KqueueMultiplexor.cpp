@@ -74,8 +74,8 @@ int KqueueMultiplexor::wait(struct timespec *timeout, std::vector<io_mplex_fd_in
 // @return kevent addition success or failure
 int KqueueMultiplexor::add(const io_mplex_fd_info_t &fd_info) 
 {
-    int flags = mplex_to_kqueue(fd_info.flags);
-    int filters = mplex_to_kqueue(fd_info.filters);
+    int flags = flags_from_mplex(fd_info.flags);
+    int filters = flags_from_mplex(fd_info.filters);
     
     struct kevent event;
     EV_SET(&event, fd_info.fd, filters, flags | EV_ADD, 0, 0, nullptr);
@@ -106,8 +106,8 @@ int KqueueMultiplexor::add(const std::vector<io_mplex_fd_info_t> &fd_list)
     int flags = 0;
     int filters = 0;
     for (auto &fd_info : fd_list) {
-        flags = mplex_to_kqueue(fd_info.flags);
-        filters = mplex_to_kqueue(fd_info.filters);
+        flags = flags_from_mplex(fd_info.flags);
+        filters = flags_from_mplex(fd_info.filters);
         EV_SET(&change_list[index], fd_info.fd, filters, flags | EV_ADD, 0, 0, nullptr);
         index++;
     }
@@ -234,13 +234,13 @@ io_mplex_flags_t KqueueMultiplexor::flags_to_mplex(int kqueue_values)
     if (kqueue_values & EVFILT_WRITE) {
         flags |= MPLEX_OUT;
     }
-    if (kqueue_values & EVFILT_ONESHOT) {
+    if (kqueue_values & EV_ONESHOT) {
         flags |= MPLEX_ONESHOT;
     }
-    if (kqueue_values & EVFILT_EOF) {
+    if (kqueue_values & EV_EOF) {
         flags |= MPLEX_EOF;
     }
-    if (kqueue_values & EVFILT_ERR) {
+    if (kqueue_values & EV_ERROR) {
         flags |= MPLEX_ERR;
     }
     return flags;
