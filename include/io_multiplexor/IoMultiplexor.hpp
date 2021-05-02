@@ -6,6 +6,8 @@
 //
 // 22-April-2021
 
+#pragma once
+
 #include <time.h>
 
 #include <vector>
