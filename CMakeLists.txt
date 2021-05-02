@@ -13,5 +13,10 @@ set(CMAKE_CXX_EXTENSIONS NO)
 # External dependencies 
 add_subdirectory(dependencies)
 
+# Register tests with cmake
+include(CTest)
+include(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Catch2/extras/Catch.cmake)
+
 # Main targets built for this project
 add_subdirectory(src)
+

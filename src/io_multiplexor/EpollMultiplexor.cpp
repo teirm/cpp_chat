@@ -36,8 +36,12 @@ EpollMultiplexor::~EpollMultiplexor()
 int EpollMultiplexor::wait(struct timespec *timeout, std::vector<io_mplex_fd_info_t> &events)
 {
     struct epoll_event event_list[max_events_];
-     
-    int wait_seconds = 0;
+    
+    // Epoll semanitcs on the wait:
+    //      -1 wait indefinitely
+    //       0 return immediately
+    //       _ wait that many seconds
+    int wait_seconds = -1;
     if (timeout != nullptr) {
         wait_seconds = timeout->tv_sec;
     }
@@ -48,8 +52,12 @@ int EpollMultiplexor::wait(struct timespec *timeout, std::vector<io_mplex_fd_inf
     }
     events.reserve(n_events);
     for (int i = 0; i < n_events; i++) {
+        auto& event = event_list[i];
+        auto flags = flags_to_mplex(event.events);
+        auto filters = flags_to_mplex(event.events);
+        events.push_back({flags, filters, event.data.fd});
     }
-    return 0;
+    return n_events;
 }
 
 int EpollMultiplexor::add(const io_mplex_fd_info_t &fd_info) 

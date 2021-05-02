@@ -12,7 +12,7 @@
 #include <memory>
 
 class IoMultiplexorFactory final {
-    
+public:    
     IoMultiplexorFactory() = delete;
     ~IoMultiplexorFactory() = delete;
 

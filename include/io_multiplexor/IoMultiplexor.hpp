@@ -27,7 +27,7 @@ enum IoMultiplexorFlags : io_mplex_flags_t
 struct io_mplex_fd_info_t {
     io_mplex_flags_t flags;
     io_mplex_flags_t filters; 
-    unsigned long fd;
+    int fd;
 };
 
 class IoMultiplexor {

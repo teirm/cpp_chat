@@ -21,3 +21,5 @@ target_include_directories(io_mplex
 set_target_properties(io_mplex
                       PROPERTIES CXX_EXTENSIONS OFF
                       CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+
+add_subdirectory(tests)
