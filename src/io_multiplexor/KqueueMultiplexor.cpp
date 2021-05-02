@@ -21,6 +21,8 @@ using namespace std;
 //
 // Creates a new kqueue instance
 //
+// @param[in] max_events    maximum number of supported kevents
+//
 // @throws std::runtime_error if unable to 
 //         create kqueue
 KqueueMultiplexor::KqueueMultiplexor(unsigned max_events):
@@ -32,6 +34,10 @@ KqueueMultiplexor::KqueueMultiplexor(unsigned max_events):
     }
 }
 
+// KqueueMultiplexor destructor
+//
+// Close the instance of the kqueue
+//
 KqueueMultiplexor::~KqueueMultiplexor()
 {
     if (close(instance_fd_) == -1) {
@@ -39,6 +45,12 @@ KqueueMultiplexor::~KqueueMultiplexor()
     }
 }
 
+// Wait for kevents 
+//
+// @param[in]   timeout     timespec defining the timeout. nullptr implies wait indefinitely
+// @param[out]  events      container for events found
+//
+// @return kevent status 
 int KqueueMultiplexor::wait(struct timespec *timeout, std::vector<io_mplex_fd_info_t> &events) 
 {
     struct kevent event_list[max_events_]; 
@@ -56,6 +68,12 @@ int KqueueMultiplexor::wait(struct timespec *timeout, std::vector<io_mplex_fd_in
     return 0;
 }
 
+// Add the given file descriptor with provided flags and filters
+// to kqueue.
+//
+// @param[in]   fd_info     structure defining file descriptor, flags, and filters
+//
+// @return kevent addition success or failure
 int KqueueMultiplexor::add(const io_mplex_fd_info_t &fd_info) 
 {
     int flags = mplex_to_kqueue(fd_info.flags);
@@ -74,6 +92,14 @@ int KqueueMultiplexor::add(const io_mplex_fd_info_t &fd_info)
     return rc;
 }
 
+// Add the set of provided file descriptors and associated flags/filters
+// to kqueue.
+//
+// @param[in]   fd_info_list    list of file descriptors, each with flags and filters
+//
+// @return kevent addition success or failutre
+//
+// @note addition is all or nothing
 int KqueueMultiplexor::add(const std::vector<io_mplex_fd_info_t> &fd_list)
 {
     size_t size = fd_list.size();
@@ -98,11 +124,24 @@ int KqueueMultiplexor::add(const std::vector<io_mplex_fd_info_t> &fd_list)
     return rc;
 }
 
+// Add the set of provided file descriptors and associated flags/filters
+// to kqueue.
+//
+// @param[in]   fd_info_list    list of file descriptors, each with flags and filters
+//
+// @return kevent addition success or failutre
+//
+// @note addition is all or nothing
 int KqueueMultiplexor::add(std::vector<io_mplex_fd_info_t> &&fd_list)
 {
     return add(fd_list);
 }
 
+// Remove the file descriptor from the kqueue.
+//
+// @param[in]   fd  file descriptor to remove 
+//
+// @return kevent success or failure
 int KqueueMultiplexor::remove(const int fd) 
 {
     struct kevent event;
@@ -119,6 +158,13 @@ int KqueueMultiplexor::remove(const int fd)
     return rc;
 }
 
+// Remove the set of file descriptors from the kqueue
+//
+// @param[in]   fd file descriptor to remove
+//
+// @return kevent success or failure
+//
+// @note removal is all or nothing
 int KqueueMultiplexor::remove(const std::vector<int> &fd_list) 
 {
     size_t size = fd_list.size();
@@ -139,11 +185,24 @@ int KqueueMultiplexor::remove(const std::vector<int> &fd_list)
     return rc;
 }
 
+// Remove the set of file descriptors from the kqueue
+//
+// @param[in]   fd file descriptor to remove
+//
+// @return kevent success or failure
+//
+// @note removal is all or nothing
 int KqueueMultiplexor::remove(std::vector<int> &&fd_list)
 {
     return remove(fd_list);
 }
 
+// Translate platform agnostic multiplexor flags to kqueue
+// specific flags and filters
+// 
+// @param[in]   mplex_values        multiplexor values (flags or filters)
+//
+// @return kqueue specific flags or filters
 int KqueueMultiplexor::mplex_to_kqueue(io_mplex_flags_t mplex_values)
 {
     int flags = 0;
