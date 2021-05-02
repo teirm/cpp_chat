@@ -3,8 +3,6 @@
 // Implementation of KqueueMultiplexor class.
 // Handles IO multiplexing using the Kqueue 
 // interface on BSD based systems.
-//
-//
 
 #include <common/log_util.hpp>
 #include <io_multiplexor/KqueueMultiplexor.hpp>
@@ -203,7 +201,7 @@ int KqueueMultiplexor::remove(std::vector<int> &&fd_list)
 // @param[in]   mplex_values        multiplexor values (flags or filters)
 //
 // @return kqueue specific flags or filters
-int KqueueMultiplexor::mplex_to_kqueue(io_mplex_flags_t mplex_values)
+int KqueueMultiplexor::flags_from_mplex(io_mplex_flags_t mplex_values)
 {
     int flags = 0;
 
@@ -218,6 +216,32 @@ int KqueueMultiplexor::mplex_to_kqueue(io_mplex_flags_t mplex_values)
     }
     if (mplex_values & MPLEX_EOF) {
         flags |= EV_EOF;
+    }
+    return flags;
+}
+
+// Translate kqueue specific flags and filters to platform
+// agnostic mplex values
+//
+// @param[in]   kqueue values   kqueue values to translate
+io_mplex_flags_t KqueueMultiplexor::flags_to_mplex(int kqueue_values)
+{
+    io_mplex_flags_t flags = 0;
+    
+    if (kqueue_values & EVFILT_READ) {
+        flags |= MPLEX_IN;
+    }
+    if (kqueue_values & EVFILT_WRITE) {
+        flags |= MPLEX_OUT;
+    }
+    if (kqueue_values & EVFILT_ONESHOT) {
+        flags |= MPLEX_ONESHOT;
+    }
+    if (kqueue_values & EVFILT_EOF) {
+        flags |= MPLEX_EOF;
+    }
+    if (kqueue_values & EVFILT_ERR) {
+        flags |= MPLEX_ERR;
     }
     return flags;
 }

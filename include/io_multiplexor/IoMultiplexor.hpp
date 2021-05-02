@@ -15,10 +15,11 @@
 typedef int io_mplex_flags_t;
 enum IoMultiplexorFlags : io_mplex_flags_t 
 {
-   MPLEX_IN        = 0x1,
-   MPLEX_OUT       = 0x2,
-   MPLEX_ONESHOT   = 0x4,
-   MPLEX_EOF       = 0x8
+   MPLEX_IN        = 0x01,
+   MPLEX_OUT       = 0x02,
+   MPLEX_ONESHOT   = 0x04,
+   MPLEX_EOF       = 0x08,
+   MPLEX_ERR       = 0x10 
 };
 
 struct io_mplex_fd_info_t {
@@ -51,6 +52,9 @@ public:
     virtual int remove(std::vector<int> &&fd_list)                  = 0;
 
 protected:
+    virtual int flags_from_mplex(io_mplex_flags_t mplex_values) = 0;
+    virtual io_mplex_flags_t flags_to_mplex(int flags) = 0; 
+
     // system specific file descriptor;
     int instance_fd_;
     unsigned max_events_;

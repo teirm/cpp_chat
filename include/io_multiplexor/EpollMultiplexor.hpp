@@ -9,7 +9,7 @@
 
 class EpollMultiplexor final: public IoMultiplexor  {
 public: 
-    EpollMultiplexor();
+    EpollMultiplexor(unsigned max_events);
     ~EpollMultiplexor();
     
     virtual int wait(struct timespec *timeout, std::vector<io_mplex_fd_info_t> &events) override;
@@ -23,5 +23,6 @@ public:
     virtual int remove(std::vector<int> &&fd_list) override;
 
 private:
-    int mplex_to_epoll(io_mplex_flags_t mplex_values);
+    virtual int flags_from_mplex(io_mplex_flags_t mplex_values) override;
+    virtual io_mplex_flags_t flags_to_mplex(int epoll_values) override;
 };
