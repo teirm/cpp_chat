@@ -22,8 +22,7 @@ Server::Server(std::string address, std::string port, unsigned int max_conn):
         server_socket_(-1),
         max_conn_(max_conn),
         is_running_(false)
-{
-    server_socket_ = bind_socket(address_.c_str(), port_.c_str(), false);
+{ server_socket_ = bind_socket(address_.c_str(), port_.c_str(), false);
     if (server_socket_ == -1) {
         throw std::runtime_error("Unable to bind socket\n");
     }
@@ -78,7 +77,7 @@ void Server::handle_clients()
             if (event.fd == server_socket_) {
                 // handle accept
             } else if (event.fd == stop_channel_.read_pipe) {
-                // handle shutdown
+                // handle shutdown                  
             } else {
                 // everything else should be clients
             }
