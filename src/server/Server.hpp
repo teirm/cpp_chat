@@ -5,11 +5,10 @@
 //
 // 22-April-2021
 
-#include "Acceptor.hpp"
-
 #include <string>
+#include <memory>
 #include <common/utilities.hpp>
-
+#include <io_multiplexor/IoMultiplexor.hpp>
 
 class Server final {
 public:
@@ -24,9 +23,9 @@ private:
     void handle_clients();
     std::string address_;
     std::string port_;
+    int server_socket_;
     unsigned int max_conn_;
-    int epoll_fd_;
     bool is_running_;
-    Channel stop_channel_;
-    Acceptor acceptor_;
+    std::unique_ptr<IoMultiplexor> io_mplex_;
+    Channel stop_channel_; 
 };

@@ -44,6 +44,18 @@ TEST_CASE("multiplexor test flags and filters", "[flags_and_filters]") {
     }
 }
 
+TEST_CASE("multiplex add list", "[add_list]") {
+    Channel channel_1;
+    Channel channel_2;
+
+    auto mplex = IoMultiplexorFactory::get_multiplexor(test_mplex_size);
+    
+    REQUIRE(mplex->add({{MPLEX_ONESHOT, MPLEX_IN, channel_1.read_pipe},
+                        {0, MPLEX_OUT, channel_1.write_pipe},
+                        {MPLEX_EOF, MPLEX_IN, channel_2.read_pipe},
+                        {0, MPLEX_OUT, channel_2.write_pipe}}) == 0);
+}
+
 TEST_CASE("multiplexor timeout", "[timeout]") {
     Channel test_channel;
     struct timespec timeout{3, 0};

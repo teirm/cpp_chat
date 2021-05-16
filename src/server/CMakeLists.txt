@@ -1,7 +1,6 @@
 # Cmake file for server
 add_executable(cpp_chat_server
-               main.cpp
-               Acceptor.cpp)
+               main.cpp)
 
 # disable gnu C++ extensions
 set_target_properties(cpp_chat_server
