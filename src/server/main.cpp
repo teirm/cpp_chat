@@ -6,8 +6,6 @@
 //
 // 20 April 2021
 
-#include "Acceptor.hpp"
-
 #include <common/net_common.hpp>
 #include <common/utilities.hpp>
 #include <common/log_util.hpp>
@@ -16,11 +14,8 @@
 
 #include <string>
 
-#include <sys/epoll.h>
-
 using namespace parse_flags;
 
-const int serverBacklog = 20;
 
 // @brief Server main argument processing and begins connection handling 
 int main(int argc, char *argv[])

@@ -61,9 +61,11 @@ int KqueueMultiplexor::wait(struct timespec *timeout, std::vector<io_mplex_fd_in
     events.reserve(count);
     for (int i = 0; i < count; i++) {
         struct kevent &event = event_list[i]; 
-        events.push_back({event.flags, event.filter, event.ident});
+        auto flags = flags_to_mplex(event.flags);
+        auto filters = flags_to_mplex(event.filter);
+        events.push_back({flags, filters, static_cast<int>(event.ident)});
     }
-    return 0;
+    return count;
 }
 
 // Add the given file descriptor with provided flags and filters

@@ -80,7 +80,7 @@ TEST_CASE("multiplexor returns write", "[write_ready]") {
     REQUIRE(events.size() == 1);
     auto& event = events[0];
     REQUIRE(event.fd == test_channel.write_pipe);
-    REQUIRE(event.filters == MPLEX_OUT);
+    REQUIRE((event.filters & MPLEX_OUT) != 0);
 }
 
 TEST_CASE("multiplexor returns read", "[read_ready]") {
@@ -101,7 +101,7 @@ TEST_CASE("multiplexor returns read", "[read_ready]") {
     REQUIRE(events.size() == 1);
     auto& event = events[0];
     REQUIRE(event.fd == test_channel.read_pipe);
-    REQUIRE(event.filters == MPLEX_IN);
+    REQUIRE((event.filters & MPLEX_IN) != 0);
 
     // Read message from pipe
     char msg_buffer[message.size() + 1];

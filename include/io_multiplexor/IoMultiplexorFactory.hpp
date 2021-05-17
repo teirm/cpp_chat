@@ -24,7 +24,7 @@ std::unique_ptr<IoMultiplexor> IoMultiplexorFactory::get_multiplexor(unsigned ma
 {
 #if __linux__
     return std::unique_ptr<EpollMultiplexor>(new EpollMultiplexor(max_events));
-#elif __freebsd__
+#elif __FreeBSD__
     return std::unique_ptr<KqueueMultiplexor>(new KqueueMultiplexor(max_events));
 #else
     #error UNSUPPORTED_PLATFORM
