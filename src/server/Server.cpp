@@ -15,6 +15,10 @@
 #include <exception>
 
 #include <sys/epoll.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
 
 Server::Server(std::string address, std::string port, unsigned int max_conn):
         address_(address),
@@ -22,7 +26,8 @@ Server::Server(std::string address, std::string port, unsigned int max_conn):
         server_socket_(-1),
         max_conn_(max_conn),
         is_running_(false)
-{ server_socket_ = bind_socket(address_.c_str(), port_.c_str(), false);
+{ 
+    server_socket_ = bind_socket(address_.c_str(), port_.c_str(), false);
     if (server_socket_ == -1) {
         throw std::runtime_error("Unable to bind socket\n");
     }
@@ -66,6 +71,7 @@ int Server::stop()
 
 void Server::handle_clients()
 {
+
     std::vector<io_mplex_fd_info_t> events;
     while (is_running_) {
         int n_events = io_mplex_->wait(nullptr, events);
@@ -75,6 +81,25 @@ void Server::handle_clients()
         }
         for (const auto &event : events) {
             if (event.fd == server_socket_) {
+                struct sockaddr_storage client_addr;
+                socklen_t addrlen = sizeof(client_addr);
+                
+                memzero(&client_addr, sizeof(client_addr));
+                int client_fd = accept(event.fd, (struct sockaddr *)&client_addr, &addrlen); 
+                if (client_fd == -1) {
+                    log(LogPriority::ERROR, "accept error: %s\n", strerror(errno));
+                    continue;
+                }
+                char host[NI_MAXHOST];
+                char service[NI_MAXSERV];
+                memzero(host, sizeof(host));
+                memzero(service, sizeof(service));
+                
+                // TODO wrap up all of this networking code into a C++ friendly lib
+                if (getnameinfo((struct sockaddr *)&client_addr, addrlen, host, NI_MAXHOST, service, NI_MAXSERV, NI_NUMERICSERV) == 0) {
+                    log(LogPriority::INFO, "connection from (%s,%s)\n", host, service);
+                }
+
                 //TODO: handle accept
             } else if (event.fd == stop_channel_.read_pipe) {
                 //TODO: handle shutdown                  
