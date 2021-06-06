@@ -31,8 +31,4 @@ int main(int argc, char *argv[])
         log(LogPriority::ERROR, "Unable to parse arguments: %d\n", rc);
         exit(EXIT_FAILURE);
     }
-    
-     
-    
-
 }

@@ -75,11 +75,11 @@ void Server::handle_clients()
         }
         for (const auto &event : events) {
             if (event.fd == server_socket_) {
-                // handle accept
+                //TODO: handle accept
             } else if (event.fd == stop_channel_.read_pipe) {
-                // handle shutdown                  
+                //TODO: handle shutdown                  
             } else {
-                // everything else should be clients
+                //TODO: everything else should be clients
             }
         }
     }

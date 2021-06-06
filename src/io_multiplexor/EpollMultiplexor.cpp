@@ -44,6 +44,7 @@ int EpollMultiplexor::wait(struct timespec *timeout, std::vector<io_mplex_fd_inf
     int wait_seconds = -1;
     if (timeout != nullptr) {
         wait_seconds = timeout->tv_sec;
+        log(LogPriority::INFO, "Wait seconds: %d\n", wait_seconds); 
     }
 
     int n_events = epoll_wait(instance_fd_, event_list, max_events_, wait_seconds);  
