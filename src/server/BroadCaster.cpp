@@ -28,6 +28,7 @@ BroadCaster::~BroadCaster()
 
 //// 
 // @brief add an event to the BroadCastWorker
+//
 void BroadCaster::add_event(event_info_t &&event_info) 
 {
     std::lock_guard<std::mutex> gl(queue_lock_);
@@ -94,7 +95,7 @@ void BroadCaster::process_events()
                     log(LogPriority::INFO, "Failed to send message to %s\n", event.target.c_str());
                 }
             }
-                break;
+            break;
             default:
                 log(LogPriority::ERROR, "Unknown event type %d\n", event.type);
                 std::abort();
@@ -102,10 +103,15 @@ void BroadCaster::process_events()
     }
 }
 
+////
+// @brief Send a message to the given socket file descriptor
+//
+// @param[in] sock_fd   socket on which to send message
+// @param[in] message   message to write 
 
-int BroadCaster::send_message(int dest_fd, std::string &&message)
+int BroadCaster::send_message(int sock_fd, std::string &&message)
 {
-    (void)dest_fd;
+    (void)sock_fd;
     (void)message;
     //TODO: Need to think about client and server protocol
     return -1;

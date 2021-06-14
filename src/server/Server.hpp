@@ -10,6 +10,8 @@
 #include <common/utilities.hpp>
 #include <io_multiplexor/IoMultiplexor.hpp>
 
+#include "BroadCaster.hpp"
+
 class Server final {
 public:
     Server(std::string address, std::string port, unsigned int max_conn);
@@ -27,5 +29,6 @@ private:
     unsigned int max_conn_;
     bool is_running_;
     std::unique_ptr<IoMultiplexor> io_mplex_;
-    Channel stop_channel_; 
+    Channel stop_channel_;
+    BroadCaster broadcaster_;
 };

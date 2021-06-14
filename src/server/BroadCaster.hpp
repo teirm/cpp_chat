@@ -32,11 +32,11 @@ class BroadCaster final {
 public:
     BroadCaster();
     ~BroadCaster();
+    
     BroadCaster(const BroadCaster &rhs) = delete;
     BroadCaster(BroadCaster &&rhs) = delete;
     BroadCaster& operator()(const BroadCaster &rhs) = delete;
     
-    int stop();
     void add_event(event_info_t &&event_info);
 
 private:
