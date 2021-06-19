@@ -71,7 +71,6 @@ int Server::stop()
 
 void Server::handle_clients()
 {
-
     std::vector<io_mplex_fd_info_t> events;
     while (is_running_) {
         int n_events = io_mplex_->wait(nullptr, events);
