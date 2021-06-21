@@ -7,6 +7,8 @@
 
 #pragma once
 
+#include "protocol.hpp"
+
 #include <sys/socket.h>
 
 #include <utility>
@@ -18,8 +20,8 @@ int listen_socket(int socket_fd, int backlog);
 
 int connect_socket(const char *address, const char *port, bool is_blocking);
 
-int sock_writen(int sock_fd, const void *buffer, size_t n_bytes);
+int write_message(int sock_fd, message_t &&msg);
 
-int sock_readn(int sock_fd, void *buffer, size_t n_bytes);
+int read_message(int sock_fd, message_t &msg);
 
-std::pair<std::string, bool> get_hostname(struct sockaddr *addr, socklen_t addrlen, int flags);
+std::pair<std::string, bool> get_hostname(struct sockaddr_storage *addr_storage, socklen_t addrlen, int flags);

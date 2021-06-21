@@ -89,17 +89,13 @@ void Server::handle_clients()
                     log(LogPriority::ERROR, "accept error: %s\n", strerror(errno));
                     continue;
                 }
-                char host[NI_MAXHOST];
-                char service[NI_MAXSERV];
-                memzero(host, sizeof(host));
-                memzero(service, sizeof(service));
-                
-                // TODO wrap up all of this networking code into a C++ friendly lib
-                if (getnameinfo((struct sockaddr *)&client_addr, addrlen, host, NI_MAXHOST, service, NI_MAXSERV, NI_NUMERICSERV) == 0) {
-                    log(LogPriority::INFO, "connection from (%s,%s)\n", host, service);
+                auto hostinfo = get_hostname(&client_addr, sizeof(client_addr), NI_NUMERICHOST);
+                if (hostinfo.second == false) {
+                    log(LogPriority::ERROR, "get_hostname error\n");
+                    continue;
                 }
-
-                //TODO: handle accept
+                log(LogPriority::INFO, "received connection from %s\n", hostinfo.first.c_str());
+                broadcaster_.add_client(client_fd);   
             } else if (event.fd == stop_channel_.read_pipe) {
                 //TODO: handle shutdown                  
             } else {

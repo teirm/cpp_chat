@@ -16,6 +16,72 @@
 
 #include <utility>
 
+// Write n bytes to a socket in a reliable manner
+//
+// @param[in]   sock_fd     file descriptor for socket to write to
+// @param[in]   buffer      buffer containing data to write
+// @param[in]   n_bytes     bytes to write 
+//
+// @return  0 on success 
+//         -1 on error
+static int sock_writen(int sock_fd, const void *buffer, size_t n_bytes)
+{
+    int bytes_written = 0;
+    const char *buf = static_cast<const char *>(buffer);
+
+    while ((bytes_written = write(sock_fd, buf, n_bytes))) {
+        if (bytes_written <= 0) {
+            if (bytes_written == -1 && errno == EINTR) {
+                // on signal interupts we restart the write syscal
+                continue;
+            } else {
+                // an actual error occured
+                log(LogPriority::ERROR, "error writing to socket, %d\n", errno);
+                return -1;
+            }
+        }
+        buf += bytes_written;
+        n_bytes -= bytes_written;
+        if (n_bytes == 0) {
+            break;
+        }
+    }
+    return 0;
+}
+
+// Read n bytes from a socket in a reliable manner
+//
+// @param[in] sock_fd   file descriptor for socket to read from
+// @parma[in] buffer    buffer to read data into
+// @param[in] n_bytes   bytes to read
+// 
+// @return  0 on success
+//         -1 on error
+static int sock_readn(int sock_fd, void *buffer, size_t n_bytes)
+{   
+    int bytes_read = 0;
+    char *buf = static_cast<char *>(buffer);
+    
+    while ((bytes_read = read(sock_fd, buf, n_bytes))) {
+        if (bytes_read <= 0) {
+            if (bytes_read == -1 && errno == EINTR) {
+                // restart syscall if it is interrupted
+                continue;
+            } else {
+                // an actuall error occurred
+                log(LogPriority::ERROR, "error reading from socket, %d\n", errno);
+                return -1;
+            }
+        }
+        buf += bytes_read;
+        n_bytes -= bytes_read;
+        if (n_bytes == 0) {
+            break;
+        }
+    }
+    return 0;
+}
+
 // Attempt passive open and bind a socket
 // at address,port
 //
@@ -148,70 +214,35 @@ int connect_socket(const char *address, const char *port, bool is_blocking)
     return socket_fd;
 }
 
-// Write n bytes to a socket in a reliable manner
+// Write a message to a socket
 //
-// @param[in]   sock_fd     file descriptor for socket to write to
-// @param[in]   buffer      buffer containing data to write
-// @param[in]   n_bytes     bytes to write 
+// @param[in] sock_fd   socket to write to
+// @param[in] msg       msg and header to write to socket
 //
-// @return  0 on success 
-//         -1 on error
-int sock_writen(int sock_fd, const void *buffer, size_t n_bytes)
+// @return   0 on success
+//          -1 on error
+int write_message(int sock_fd, message_t &&msg)
 {
-    int bytes_written = 0;
-    const char *buf = static_cast<const char *>(buffer);
-
-    while ((bytes_written = write(sock_fd, buf, n_bytes))) {
-        if (bytes_written <= 0) {
-            if (bytes_written == -1 && errno == EINTR) {
-                // on signal interupts we restart the write syscal
-                continue;
-            } else {
-                // an actual error occured
-                log(LogPriority::ERROR, "error writing to socket, %d\n", errno);
-                return -1;
-            }
-        }
-        buf += bytes_written;
-        n_bytes -= bytes_written;
-        if (n_bytes == 0) {
-            break;
-        }
-    }
-    return 0;
+    size_t write_len = sizeof(msg.header) + msg.header.msg_len; 
+    return sock_writen(sock_fd, &msg, write_len);    
 }
 
-// Read n bytes from a socket in a reliable manner
+// Read a message form a socket
 //
-// @param[in] sock_fd   file descriptor for socket to read from
-// @parma[in] buffer    buffer to read data into
-// @param[in] n_bytes   bytes to read
-// 
-// @return  0 on success
-//         -1 on error
-int sock_readn(int sock_fd, void *buffer, size_t n_bytes)
-{   
-    int bytes_read = 0;
-    char *buf = static_cast<char *>(buffer);
-    
-    while ((bytes_read = read(sock_fd, buf, n_bytes))) {
-        if (bytes_read <= 0) {
-            if (bytes_read == -1 && errno == EINTR) {
-                // restart syscall if it is interrupted
-                continue;
-            } else {
-                // an actuall error occurred
-                log(LogPriority::ERROR, "error reading from socket, %d\n", errno);
-                return -1;
-            }
-        }
-        buf += bytes_read;
-        n_bytes -= bytes_read;
-        if (n_bytes == 0) {
-            break;
-        }
+// @param[in]   sock_fd   socket to read form 
+// @param[out]  msg       message read from socket
+//
+// @return      0 on success
+//             -1 on error
+int read_message(int sock_fd, message_t &msg)
+{
+    memzero(&msg, sizeof(msg));
+
+    int rc = sock_readn(sock_fd, &(msg.header), sizeof(msg.header));
+    if (rc) {
+        return -1;
     }
-    return 0;
+    return sock_readn(sock_fd, &(msg.message), msg.header.msg_len);
 }
 
 // Get the hostname corresponding to an addr structure
@@ -225,10 +256,11 @@ int sock_readn(int sock_fd, void *buffer, size_t n_bytes)
 //                        * NI_NINUMERICHOST
 // 
 // @return std::pair<std::string, bool>   
-std::pair<std::string, bool> get_hostname(struct sockaddr *addr, socklen_t addrlen, int flags)
+std::pair<std::string, bool> get_hostname(struct sockaddr_storage *addr_storage, socklen_t addrlen, int flags)
 {
     char host[NI_MAXHOST];
     memzero(host, sizeof(host));
+    struct sockaddr *addr = reinterpret_cast<struct sockaddr*>(addr_storage);
 
     int rc = getnameinfo(addr, addrlen, host, NI_MAXHOST, nullptr, 0, flags);
     if (rc) {

@@ -8,8 +8,9 @@
 #include "BroadCaster.hpp"
 
 #include <common/log_util.hpp>
-#include <thread>
 
+#include <cassert>
+#include <thread>
 
 BroadCaster::BroadCaster()
     :processing_(true)
@@ -26,8 +27,56 @@ BroadCaster::~BroadCaster()
     process_.join();
 }
 
+////
+// @brief add a client to the BroadCaster
+// 
+// @param[in]   name        name of the client
+// @param[in]   client_fd   connection to client
+//
+void BroadCaster::add_client(const char *name, int client_fd)
+{
+    assert(name != nullptr);
+    return add_event({EventType::ADD_CLIENT, client_fd, name, nullptr, nullptr});
+}
+
+////
+// @brief delete a client from the BroadCaster
+//
+// @param[in]   name        name of the client to delete
+void BroadCaster::del_client(const char *name)
+{
+    assert(name != nullptr);
+    return add_event({EventType::DEL_CLIENT, 0, name, nullptr, nullptr});
+}
+
+////
+// @brief broadcast a message
+//
+// @param[in]  source   source of the message
+// @param[in]  message  message to broadcast
+void BroadCaster::broadcast_msg(const char *source, const char *message)
+{
+    assert(source != nullptr);
+    assert(message != nullptr);
+    return add_event({EventType::BROADCAST, 0, source, nullptr, message});
+}
+
+////
+// @brief direct message 
+//
+// @param[in]   source  source of the message
+// @param[in]   intended recipient of the message
+// @param[in]   message to send
+void BroadCaster::direct_msg(const char *source, const char *destination, const char *message)
+{
+    assert(source != nullptr);
+    assert(destination != nullptr);
+    assert(message != nullptr);
+    return add_event({EventType::DIRECT_MSG, 0, source, destination, message});
+}
+
 //// 
-// @brief add an event to the BroadCastWorker
+// @brief add an event to the BroadCaster
 //
 void BroadCaster::add_event(event_info_t &&event_info) 
 {
@@ -53,16 +102,16 @@ void BroadCaster::process_events()
         switch (event.type) {
             case EventType::ADD_CLIENT: 
             {
-                auto res = client_map_.insert({event.name, event.sock_fd});
+                auto res = client_map_.insert({event.source, event.sock_fd});
                 if (res.second == false) {
                     log(LogPriority::ERROR, "Failed to insert client %s\n", 
-                            event.name.c_str());
+                            event.source);
                 }
             }
             break;
             case EventType::DEL_CLIENT: 
             {
-                auto count = client_map_.erase(event.name);
+                auto count = client_map_.erase(event.source);
                 if (count == 0) {
                     log(LogPriority::ERROR, "Failed to remove client\n");
                 }
@@ -78,7 +127,7 @@ void BroadCaster::process_events()
                         int rc = send_message(dest_fd, std::move(event.message));
                         if (rc) {
                             log(LogPriority::ERROR, "Failed to send message to client %s\n",
-                                client.first.c_str());
+                                client.first);
                         }
                     }
                 }
@@ -86,13 +135,13 @@ void BroadCaster::process_events()
             break;
             case EventType::DIRECT_MSG:
             {
-                auto res = client_map_.find(event.target);
+                auto res = client_map_.find(event.destination);
                 if (res == client_map_.end()) {
-                    log(LogPriority::INFO, "Destination %s not found\n", event.target.c_str());
+                    log(LogPriority::INFO, "Destination %s not found\n", event.destination);
                 }
                 int rc = send_message(res->second, std::move(event.message));
                 if (rc) {
-                    log(LogPriority::INFO, "Failed to send message to %s\n", event.target.c_str());
+                    log(LogPriority::INFO, "Failed to send message to %s\n", event.destination);
                 }
             }
             break;

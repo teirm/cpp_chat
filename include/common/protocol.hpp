@@ -7,11 +7,17 @@
 
 #pragma once
 
+#include <string>
+
 constexpr auto MSG_DATA_MAX_SIZE = 400;
 
-struct msg_header {
+struct msg_header_t {
     unsigned int  msg_len;
     unsigned long time_stamp;
     char*         target;
 };
 
+struct message_t {
+    msg_header_t header;
+    char message[MSG_DATA_MAX_SIZE];
+};
