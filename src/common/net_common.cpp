@@ -270,3 +270,25 @@ std::pair<std::string, bool> get_hostname(struct sockaddr_storage *addr_storage,
 
     return {host, true};
 }
+
+
+// Shutdown and close a socket
+//
+// @param[in]   socket_fd   socket file descriptor to shutdown and close
+// @param[in]   flags       shutdown flags
+//
+// @return  0 on success
+//         -1 on error
+int terminate_connection(int socket_fd, int flags)
+{
+    int shut_rc = shutdown(socket_fd, flags);
+    if (shut_rc) {
+        log(LogPriority::ERROR, "failed to shutdown socket\n");
+    }
+    int close_rc = close(socket_fd);
+    if (close_rc) {
+        log(LogPriority::ERROR, "failed to close socket\n");
+    }
+    
+    return (close_rc || shut_rc) ? -1 : 0;
+}

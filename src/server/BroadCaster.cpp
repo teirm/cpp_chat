@@ -12,6 +12,10 @@
 #include <cassert>
 #include <thread>
 
+#include <unistd.h>
+
+#include <sys/socket.h>
+
 BroadCaster::BroadCaster()
     :processing_(true)
 {
@@ -148,6 +152,19 @@ void BroadCaster::process_events()
             default:
                 log(LogPriority::ERROR, "Unknown event type %d\n", event.type);
                 std::abort();
+        }
+    }
+    
+    int rc = 0;
+    // Shutdown all client connections and close sockets
+    for (auto &client_info : client_map_) {
+        rc = shutdown(client_info.second, SHUT_WR);
+        if (rc) {
+            log(LogPriority::ERROR, "Failed to shutdown connection to %s\n", client_info.first);
+        }
+        rc = close(client_info.second);
+        if (rc) {
+            log(LogPriority::ERROR, "Failed to close connection to %s\n", client_info.first);
         }
     }
 }

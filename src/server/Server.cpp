@@ -19,6 +19,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#include <unistd.h>
 
 Server::Server(std::string address, std::string port, unsigned int max_conn):
         address_(address),
@@ -92,14 +93,28 @@ void Server::handle_clients()
                 auto hostinfo = get_hostname(&client_addr, sizeof(client_addr), NI_NUMERICHOST);
                 if (hostinfo.second == false) {
                     log(LogPriority::ERROR, "get_hostname error\n");
+                    int err_rc = terminate_socket(client_fd, SHUT_WR);
+                    if (err_rc) {
+                        log(LogPriority::ERROR, "failed to terminate socket\n");
+                    }
                     continue;
                 }
                 log(LogPriority::INFO, "received connection from %s\n", hostinfo.first.c_str());
-                broadcaster_.add_client(client_fd);   
+                broadcaster_.add_client(hostinfo.first.c_str(), client_fd);
+                
+                int rc = io_mplex_->add({0, MPLEX_IN, client_fd});
+                if (rc) {
+                    log(LogPriority::ERROR, "unable to add client (%s) to multiplexor", hostinfo.first.c_str());
+                    int err_rc = terminate_socket(client_fd, SHUT_WR);
+                    if (err_rc) {
+                        log(LogPriority::ERROR, "failed to terminate socket\n");
+                    }
+                } 
             } else if (event.fd == stop_channel_.read_pipe) {
-                //TODO: handle shutdown                  
+                log(LogPriority::INFO, "received shutdown\n");
+                break;
             } else {
-                //TODO: everything else should be clients
+                // Need to look up various cases of reading and writing to socket     
             }
         }
     }
