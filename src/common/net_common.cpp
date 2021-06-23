@@ -22,11 +22,11 @@
 // @param[in]   buffer      buffer containing data to write
 // @param[in]   n_bytes     bytes to write 
 //
-// @return  0 on success 
-//         -1 on error
+// @return  total bytes written 
 static int sock_writen(int sock_fd, const void *buffer, size_t n_bytes)
 {
     int bytes_written = 0;
+    int total_written = 0;
     const char *buf = static_cast<const char *>(buffer);
 
     while ((bytes_written = write(sock_fd, buf, n_bytes))) {
@@ -37,10 +37,11 @@ static int sock_writen(int sock_fd, const void *buffer, size_t n_bytes)
             } else {
                 // an actual error occured
                 log(LogPriority::ERROR, "error writing to socket, %d\n", errno);
-                return -1;
+                return total_written;
             }
         }
         buf += bytes_written;
+        total_written += bytes_written;
         n_bytes -= bytes_written;
         if (n_bytes == 0) {
             break;
@@ -55,11 +56,11 @@ static int sock_writen(int sock_fd, const void *buffer, size_t n_bytes)
 // @parma[in] buffer    buffer to read data into
 // @param[in] n_bytes   bytes to read
 // 
-// @return  0 on success
-//         -1 on error
+// @return total bytes read 
 static int sock_readn(int sock_fd, void *buffer, size_t n_bytes)
 {   
     int bytes_read = 0;
+    int total_read = 0;
     char *buf = static_cast<char *>(buffer);
     
     while ((bytes_read = read(sock_fd, buf, n_bytes))) {
@@ -70,16 +71,17 @@ static int sock_readn(int sock_fd, void *buffer, size_t n_bytes)
             } else {
                 // an actuall error occurred
                 log(LogPriority::ERROR, "error reading from socket, %d\n", errno);
-                return -1;
+                return total_read;
             }
         }
         buf += bytes_read;
+        total_read += bytes_read;
         n_bytes -= bytes_read;
         if (n_bytes == 0) {
             break;
         }
     }
-    return 0;
+    return total_read;
 }
 
 // Attempt passive open and bind a socket
@@ -224,7 +226,11 @@ int connect_socket(const char *address, const char *port, bool is_blocking)
 int write_message(int sock_fd, message_t &&msg)
 {
     size_t write_len = sizeof(msg.header) + msg.header.msg_len; 
-    return sock_writen(sock_fd, &msg, write_len);    
+    size_t bytes_written = sock_writen(sock_fd, &msg, write_len);
+    if (bytes_written < write_len) {
+        return -1;
+    }
+    return 0;
 }
 
 // Read a message form a socket
@@ -232,17 +238,25 @@ int write_message(int sock_fd, message_t &&msg)
 // @param[in]   sock_fd   socket to read form 
 // @param[out]  msg       message read from socket
 //
-// @return      0 on success
-//             -1 on error
+// @return      EOF       end of file received on socket
+//              0         successful read
+//             -1         error  
 int read_message(int sock_fd, message_t &msg)
 {
     memzero(&msg, sizeof(msg));
 
-    int rc = sock_readn(sock_fd, &(msg.header), sizeof(msg.header));
-    if (rc) {
+    size_t bytes_read = sock_readn(sock_fd, &(msg.header), sizeof(msg.header));
+    if (bytes_read == 0) {
+        return EOF;
+    } else if (bytes_read < sizeof(msg.header)) {
         return -1;
+    } else {
+        bytes_read = sock_readn(sock_fd, &msg.message, msg.header.msg_len);
+        if (bytes_read < msg.header.msg_len) {
+            return -1;
+        }
     }
-    return sock_readn(sock_fd, &(msg.message), msg.header.msg_len);
+    return 0; 
 }
 
 // Get the hostname corresponding to an addr structure

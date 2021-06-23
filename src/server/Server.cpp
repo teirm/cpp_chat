@@ -102,7 +102,7 @@ void Server::handle_clients()
                 log(LogPriority::INFO, "received connection from %s\n", hostinfo.first.c_str());
                 broadcaster_.add_client(hostinfo.first.c_str(), client_fd);
                 
-                int rc = io_mplex_->add({0, MPLEX_IN, client_fd});
+                int rc = io_mplex_->add({0, MPLEX_IN | MPLEX_EOF, client_fd});
                 if (rc) {
                     log(LogPriority::ERROR, "unable to add client (%s) to multiplexor", hostinfo.first.c_str());
                     int err_rc = terminate_socket(client_fd, SHUT_WR);
@@ -114,7 +114,11 @@ void Server::handle_clients()
                 log(LogPriority::INFO, "received shutdown\n");
                 break;
             } else {
-                // Need to look up various cases of reading and writing to socket     
+                if (event.filters & MPLEX_IN) {
+                    // read message and give to broadcaster
+                } else if (event.filters & (MPLEX_EOF | MPLEX_ERR)) {
+                    // remove client and terminate connection
+                }
             }
         }
     }
