@@ -67,7 +67,12 @@ int Server::start()
 int Server::stop()
 {
     is_running_ = false;
-    return -1; 
+    char stop_char = 'c';
+    int bytes_written = write(stop_channel_.write_pipe, &stop_char, 1);
+    if (bytes_written != 1) {
+        throw std::runtime_error("failed to stop server\n");
+    }
+    return 0; 
 }
 
 void Server::handle_clients()
@@ -115,9 +120,10 @@ void Server::handle_clients()
                 break;
             } else {
                 if (event.filters & MPLEX_IN) {
-                    // read message and give to broadcaster
+                                        
                 } else if (event.filters & (MPLEX_EOF | MPLEX_ERR)) {
                     // remove client and terminate connection
+                    broadcaster_.del_client(event.fd);
                 }
             }
         }

@@ -223,7 +223,7 @@ int connect_socket(const char *address, const char *port, bool is_blocking)
 //
 // @return   0 on success
 //          -1 on error
-int write_message(int sock_fd, message_t &&msg)
+int write_message(int sock_fd, message_t &msg)
 {
     size_t write_len = sizeof(msg.header) + msg.header.msg_len; 
     size_t bytes_written = sock_writen(sock_fd, &msg, write_len);

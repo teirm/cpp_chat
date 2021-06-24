@@ -5,6 +5,8 @@
 //
 // 16-May-2021
 
+#include <common/protocol.hpp>
+
 #include <string>
 #include <vector>
 #include <queue>
@@ -12,6 +14,8 @@
 #include <condition_variable>
 #include <thread>
 #include <unordered_map>
+
+#include <cassert>
 
 enum class EventType : int {
     ADD_CLIENT,
@@ -24,8 +28,7 @@ struct event_info_t {
     EventType type;
     int sock_fd;
     const char *source;
-    const char *destination;
-    const char *message;
+    message_t message;
 };
 
 class BroadCaster final {
@@ -37,16 +40,52 @@ public:
     BroadCaster(BroadCaster &&rhs) = delete;
     BroadCaster& operator()(const BroadCaster &rhs) = delete;
    
-    void add_client(const char *name, int client_fd);
-    void del_client(const char *name);
-    void broadcast_msg(const char *source, const char *message);
-    void direct_msg(const char *source, const char *destination, const char *message);
+    ////
+    // @brief add a client to the BroadCaster
+    // 
+    // @param[in]   name        name of the client
+    // @param[in]   client_fd   connection to client
+    //
+    void add_client(const char *name, int client_fd)
+    {
+        assert(name != nullptr);
+        add_event({EventType::ADD_CLIENT, client_fd, name, {}});
+    }
+
+    ////
+    // @brief delete a client from the BroadCaster
+    //
+    // @param[in]   client_fd       client file descriptor to delete 
+    void del_client(int client_fd)
+    {
+        add_event({EventType::DEL_CLIENT, client_fd, nullptr, {}});
+    }
+    
+    ////
+    // @brief broadcast a message
+    //
+    // @param[in]  source   source of the message
+    // @param[in]  message  message to broadcast
+    void broadcast_msg(int client_fd, message_t &&message)
+    {
+        add_event({EventType::BROADCAST, client_fd, nullptr, message});
+    }
+
+    ////
+    // @brief direct message 
+    //
+    // @param[in]   source  source of the message
+    // @param[in]   intended recipient of the message
+    // @param[in]   message to send
+    void direct_msg(int client_fd, message_t &&message) {
+        add_event({EventType::DIRECT_MSG, client_fd, nullptr, message});
+    }
+    
+    void read_message(int client_fd);
 
 private:
 
     void process_events();
-
-    int send_message(int dest_fd, std::string &&message);
 
     void add_event(event_info_t &&event_info);
     bool processing_;
@@ -54,5 +93,5 @@ private:
     std::condition_variable queue_condition_;
     std::mutex queue_lock_;
     std::queue<event_info_t> event_queue_;
-    std::unordered_map<const char *, int> client_map_;
+    std::unordered_map<int, const char*> client_map_;
 };

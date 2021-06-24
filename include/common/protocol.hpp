@@ -12,9 +12,9 @@
 constexpr auto MSG_DATA_MAX_SIZE = 400;
 
 struct msg_header_t {
-    unsigned int  msg_len;
-    unsigned long time_stamp;
-    char*         target;
+    unsigned int   msg_len;
+    unsigned long  time_stamp;
+    const char    *target;
 };
 
 struct message_t {

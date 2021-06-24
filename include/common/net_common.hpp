@@ -20,7 +20,7 @@ int listen_socket(int socket_fd, int backlog);
 
 int connect_socket(const char *address, const char *port, bool is_blocking);
 
-int write_message(int sock_fd, message_t &&msg);
+int write_message(int sock_fd, message_t &msg);
 
 int read_message(int sock_fd, message_t &msg);
 

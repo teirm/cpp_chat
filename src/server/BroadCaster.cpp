@@ -8,11 +8,16 @@
 #include "BroadCaster.hpp"
 
 #include <common/log_util.hpp>
+#include <common/net_common.hpp>
 
 #include <cassert>
 #include <thread>
 
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include <unistd.h>
+#include <netdb.h>
+#include <string.h>
 
 #include <sys/socket.h>
 
@@ -31,53 +36,26 @@ BroadCaster::~BroadCaster()
     process_.join();
 }
 
-////
-// @brief add a client to the BroadCaster
-// 
-// @param[in]   name        name of the client
-// @param[in]   client_fd   connection to client
-//
-void BroadCaster::add_client(const char *name, int client_fd)
-{
-    assert(name != nullptr);
-    return add_event({EventType::ADD_CLIENT, client_fd, name, nullptr, nullptr});
-}
 
 ////
-// @brief delete a client from the BroadCaster
+// @brief read a message from the client
 //
-// @param[in]   name        name of the client to delete
-void BroadCaster::del_client(const char *name)
+// @param[in]   client_fd   client to read message from
+void BroadCaster::read_message(int client_fd)
 {
-    assert(name != nullptr);
-    return add_event({EventType::DEL_CLIENT, 0, name, nullptr, nullptr});
+    message_t message;
+    int rc = ::read_message(client_fd, message);
+    if (rc) {
+        log(LogPriority::ERROR, "failed to read message from client\n");
+        return;
+    }
+    if (message.header.target == nullptr) {
+        add_event({EventType::BROADCAST, client_fd, nullptr, std::move(message)});
+    } else {
+        add_event({EventType::DIRECT_MSG, client_fd, nullptr, std::move(message)});
+    }
 }
 
-////
-// @brief broadcast a message
-//
-// @param[in]  source   source of the message
-// @param[in]  message  message to broadcast
-void BroadCaster::broadcast_msg(const char *source, const char *message)
-{
-    assert(source != nullptr);
-    assert(message != nullptr);
-    return add_event({EventType::BROADCAST, 0, source, nullptr, message});
-}
-
-////
-// @brief direct message 
-//
-// @param[in]   source  source of the message
-// @param[in]   intended recipient of the message
-// @param[in]   message to send
-void BroadCaster::direct_msg(const char *source, const char *destination, const char *message)
-{
-    assert(source != nullptr);
-    assert(destination != nullptr);
-    assert(message != nullptr);
-    return add_event({EventType::DIRECT_MSG, 0, source, destination, message});
-}
 
 //// 
 // @brief add an event to the BroadCaster
@@ -106,7 +84,7 @@ void BroadCaster::process_events()
         switch (event.type) {
             case EventType::ADD_CLIENT: 
             {
-                auto res = client_map_.insert({event.source, event.sock_fd});
+                auto res = client_map_.insert({event.sock_fd, event.source});
                 if (res.second == false) {
                     log(LogPriority::ERROR, "Failed to insert client %s\n", 
                             event.source);
@@ -115,7 +93,7 @@ void BroadCaster::process_events()
             break;
             case EventType::DEL_CLIENT: 
             {
-                auto count = client_map_.erase(event.source);
+                auto count = client_map_.erase(event.sock_fd);
                 if (count == 0) {
                     log(LogPriority::ERROR, "Failed to remove client\n");
                 }
@@ -126,12 +104,12 @@ void BroadCaster::process_events()
                 // Write the message to all known clients except
                 // the sending client
                 for (auto &client : client_map_) {
-                    int dest_fd = client.second;
+                    int dest_fd = client.first;
                     if (dest_fd != event.sock_fd) {
-                        int rc = send_message(dest_fd, std::move(event.message));
+                        int rc = write_message(dest_fd, event.message);
                         if (rc) {
                             log(LogPriority::ERROR, "Failed to send message to client %s\n",
-                                client.first);
+                                client.second);
                         }
                     }
                 }
@@ -139,13 +117,20 @@ void BroadCaster::process_events()
             break;
             case EventType::DIRECT_MSG:
             {
-                auto res = client_map_.find(event.destination);
-                if (res == client_map_.end()) {
-                    log(LogPriority::INFO, "Destination %s not found\n", event.destination);
+                bool found = false;
+                const char *target = event.message.header.target;
+                for (auto &client : client_map_) {
+                    if (strncmp(client.second, target, strlen(target)) == 0) {
+                        int rc = write_message(client.first, event.message);
+                        if (rc) {
+                            log(LogPriority::INFO, "Failed to send message to %s\n", target);
+                        }
+                        found = true;
+                        break;
+                    }
                 }
-                int rc = send_message(res->second, std::move(event.message));
-                if (rc) {
-                    log(LogPriority::INFO, "Failed to send message to %s\n", event.destination);
+                if (!found) {
+                    log(LogPriority::INFO, "Unable to send message to %s\n", target);
                 }
             }
             break;
@@ -158,27 +143,9 @@ void BroadCaster::process_events()
     int rc = 0;
     // Shutdown all client connections and close sockets
     for (auto &client_info : client_map_) {
-        rc = shutdown(client_info.second, SHUT_WR);
+        rc = terminate_socket(client_info.first, SHUT_WR);
         if (rc) {
-            log(LogPriority::ERROR, "Failed to shutdown connection to %s\n", client_info.first);
-        }
-        rc = close(client_info.second);
-        if (rc) {
-            log(LogPriority::ERROR, "Failed to close connection to %s\n", client_info.first);
+            log(LogPriority::ERROR, "Failed to terminate connection to %s\n", client_info.second);
         }
     }
-}
-
-////
-// @brief Send a message to the given socket file descriptor
-//
-// @param[in] sock_fd   socket on which to send message
-// @param[in] message   message to write 
-
-int BroadCaster::send_message(int sock_fd, std::string &&message)
-{
-    (void)sock_fd;
-    (void)message;
-    //TODO: Need to think about client and server protocol
-    return -1;
 }
