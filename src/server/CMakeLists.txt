@@ -1,5 +1,7 @@
 # Cmake file for server
 add_executable(cpp_chat_server
+               Server.cpp
+               BroadCaster.cpp
                main.cpp)
 
 # disable gnu C++ extensions
@@ -16,4 +18,5 @@ target_link_libraries(cpp_chat_server
                       PRIVATE pthread
                       PRIVATE net_common
                       PRIVATE utilities_common
-                      PRIVATE parseflagscpp)
+                      PRIVATE parseflagscpp
+                      PRIVATE io_mplex)

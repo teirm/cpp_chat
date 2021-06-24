@@ -77,6 +77,7 @@ int Server::stop()
 
 void Server::handle_clients()
 {
+    log(LogPriority::INFO, "Now handling clients at %s:%s\n", address_.c_str(), port_.c_str()); 
     std::vector<io_mplex_fd_info_t> events;
     while (is_running_) {
         int n_events = io_mplex_->wait(nullptr, events);
@@ -98,7 +99,7 @@ void Server::handle_clients()
                 auto hostinfo = get_hostname(&client_addr, sizeof(client_addr), NI_NUMERICHOST);
                 if (hostinfo.second == false) {
                     log(LogPriority::ERROR, "get_hostname error\n");
-                    int err_rc = terminate_socket(client_fd, SHUT_WR);
+                    int err_rc = terminate_connection(client_fd, SHUT_WR);
                     if (err_rc) {
                         log(LogPriority::ERROR, "failed to terminate socket\n");
                     }
@@ -110,7 +111,7 @@ void Server::handle_clients()
                 int rc = io_mplex_->add({0, MPLEX_IN | MPLEX_EOF, client_fd});
                 if (rc) {
                     log(LogPriority::ERROR, "unable to add client (%s) to multiplexor", hostinfo.first.c_str());
-                    int err_rc = terminate_socket(client_fd, SHUT_WR);
+                    int err_rc = terminate_connection(client_fd, SHUT_WR);
                     if (err_rc) {
                         log(LogPriority::ERROR, "failed to terminate socket\n");
                     }

@@ -135,7 +135,7 @@ void BroadCaster::process_events()
             }
             break;
             default:
-                log(LogPriority::ERROR, "Unknown event type %d\n", event.type);
+                log(LogPriority::ERROR, "Unknown event type %d\n", static_cast<int>(event.type));
                 std::abort();
         }
     }
@@ -143,7 +143,7 @@ void BroadCaster::process_events()
     int rc = 0;
     // Shutdown all client connections and close sockets
     for (auto &client_info : client_map_) {
-        rc = terminate_socket(client_info.first, SHUT_WR);
+        rc = terminate_connection(client_info.first, SHUT_WR);
         if (rc) {
             log(LogPriority::ERROR, "Failed to terminate connection to %s\n", client_info.second);
         }

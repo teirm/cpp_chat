@@ -26,4 +26,4 @@ int read_message(int sock_fd, message_t &msg);
 
 std::pair<std::string, bool> get_hostname(struct sockaddr_storage *addr_storage, socklen_t addrlen, int flags);
 
-int terminate_socket(int sock_fd, int flags);
+int terminate_connection(int sock_fd, int flags);
