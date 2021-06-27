@@ -74,7 +74,14 @@ void BroadCaster::process_events()
         std::unique_lock<std::mutex> lk(queue_lock_);
         if (event_queue_.empty()) {
             queue_condition_.wait(lk, [this]{ return !processing_ || !event_queue_.empty(); });
-        } 
+        }
+        if (processing_ == false) {
+            // shutting down -- any events left over are just dropped
+            log(LogPriority::INFO, "Shutting down broadcaster -- remaining events: %lu\n", 
+                    event_queue_.size());
+            lk.unlock();
+            break;
+        }
         event_info_t event = event_queue_.front();
         event_queue_.pop();
         lk.unlock();

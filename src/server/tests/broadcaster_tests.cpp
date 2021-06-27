@@ -7,15 +7,16 @@
 #include "../BroadCaster.hpp"
 
 #include <common/utilities.hpp>
+#include <common/net_common.hpp>
 
 #include <catch2/catch_all.hpp>
 
 #include <memory>
 #include <string>
 #include <vector>
-
-#include <stdlib.h>
-
+#include <utility>
+#include <thread>
+#include <chrono>
 
 const static int TEST_FD = 10;
 
@@ -33,24 +34,28 @@ TEST_CASE("broadcaster add/delete client", "[add-del-client]") {
     broad_caster.add_client("test_client", TEST_FD);
     broad_caster.del_client(TEST_FD);
 }
-/*
+
 TEST_CASE("broadcaster broadcast message", "[broadcast-msg]") {
-    int client_count = 4;
+    
+    using client_container_t = std::vector<std::pair<std::string, Channel>>;
+    using namespace std::chrono_literals;
+    
     auto broad_caster = BroadCaster();
-    char file_template[] = "/tmp/test_client.XXXX";
-
-    std::vector<int> test_clients;
-    test_clients.reserve(client_count);
-    for (int i = 0; i < client_count; i++) {
-        int test_client = mkstemp(file_template);
-        REQUIRE(test_client != -1);
-
-        std::string client_name = "client_" + std::to_string(i); 
-        test_clients.push_back(test_client);
-        broad_caster.add_client(client_name.c_str(), test_client);
+    client_container_t test_clients(4);
+    
+    // add all the clients to the broadcaster 
+    int index = 0;
+    for (auto &test_client : test_clients) {
+        test_client.first = "client" + std::to_string(index);
+        index++;
+        broad_caster.add_client(test_client.first.c_str(), test_client.second.write_pipe);
     }
     
-    int sending_client = test_clients.at(client_count - 1);
-    msg_header_t header{4, 10, nullptr};
-    broad_caster.broadcast_msg(sending_client, {header, "moo"});
-}*/
+    // broadcast a message from a single client
+    auto &sending_client = test_clients.at(2);
+    
+    message_t message{{4, 2, nullptr}, "moo"};
+    broad_caster.broadcast_msg(sending_client.second.write_pipe, std::move(message));
+    
+    std::this_thread::sleep_for(2000ms);
+}
