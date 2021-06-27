@@ -112,7 +112,7 @@ void BroadCaster::process_events()
                     int dest_fd = client.first;
                     if (dest_fd != event.sock_fd) {
                         int rc = write_message(dest_fd, event.message);
-                        if (rc) {
+                        if (rc == -1) {
                             log(LogPriority::ERROR, "Failed to send message to client %s\n",
                                 client.second);
                         }

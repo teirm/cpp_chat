@@ -8,6 +8,7 @@
 
 #include <common/utilities.hpp>
 #include <common/net_common.hpp>
+#include <io_multiplexor/IoMultiplexorFactory.hpp>
 
 #include <catch2/catch_all.hpp>
 
@@ -16,10 +17,11 @@
 #include <string>
 #include <vector>
 #include <utility>
-#include <thread>
-#include <chrono>
+
+#include <unistd.h>
 
 const static int TEST_FD = 10;
+const static unsigned int NUM_CLIENTS = 4;
 
 TEST_CASE("broadcaster is createable", "[construct]") {
     REQUIRE_NOTHROW(BroadCaster());
@@ -39,10 +41,11 @@ TEST_CASE("broadcaster add/delete client", "[add-del-client]") {
 TEST_CASE("broadcaster broadcast message", "[broadcast-msg]") {
     
     using client_container_t = std::vector<std::pair<std::string, Channel>>;
-    using namespace std::chrono_literals;
+    using event_container_t  = std::vector<io_mplex_fd_info_t>;
     
     auto broad_caster = BroadCaster();
-    client_container_t test_clients(4);
+    auto io_mplex = IoMultiplexorFactory::get_multiplexor(NUM_CLIENTS);
+    client_container_t test_clients(NUM_CLIENTS);
     
     // add all the clients to the broadcaster 
     int index = 0;
@@ -50,23 +53,35 @@ TEST_CASE("broadcaster broadcast message", "[broadcast-msg]") {
         test_client.first = "client" + std::to_string(index);
         index++;
         broad_caster.add_client(test_client.first.c_str(), test_client.second.write_pipe);
+        REQUIRE(io_mplex->add({0, MPLEX_IN | MPLEX_ONESHOT, test_client.second.read_pipe}) == 0);
+        INFO("Client: " << test_client.first << " fd: " << test_client.second.read_pipe);
     }
+    INFO(test_clients.size());
     
     // broadcast a message from a single client
     auto &sending_client = test_clients.at(2);
+    REQUIRE(io_mplex->remove(sending_client.second.read_pipe) == 0);
     
     message_t message{{4, 2, nullptr}, "moo"};
     broad_caster.broadcast_msg(sending_client.second.write_pipe, std::move(message));
-    
-    std::this_thread::sleep_for(2000ms);
-    
-    for (auto &test_client : test_clients) {
-        if (test_client.second.write_pipe != sending_client.second.write_pipe) {
-            message_t received_msg;
-            int rc = read_message(test_client.second.read_pipe, received_msg);
-            REQUIRE(rc == 0);
-            REQUIRE(strncmp(received_msg.message, "moo", strlen("moo")) == 0);
+    event_container_t  test_events(NUM_CLIENTS);
+    int remaining_responses = NUM_CLIENTS - 1;
+    while (remaining_responses > 0) {
+        int events = io_mplex->wait(nullptr, test_events);
+        INFO("events received: " << events);
+        REQUIRE(events != -1);
+        for (const auto &event : test_events) {
+            if (event.filters & MPLEX_IN) {
+                message_t received_msg;
+                INFO("Reading from: " << event.fd);
+                int rc = read_message(event.fd, received_msg);
+                REQUIRE(rc == 0);
+                REQUIRE(strncmp(received_msg.message, "moo", strlen("moo")) == 0);
+                REQUIRE(close(event.fd) == 0);
+            }
         }
+        test_events.clear();
+        remaining_responses -= events;
+        INFO("remaining events: " << remaining_responses);
     }
-
 }

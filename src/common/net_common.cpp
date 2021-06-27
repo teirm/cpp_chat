@@ -47,7 +47,7 @@ static int sock_writen(int sock_fd, const void *buffer, size_t n_bytes)
             break;
         }
     }
-    return 0;
+    return total_written;
 }
 
 // Read n bytes from a socket in a reliable manner
@@ -228,6 +228,8 @@ int write_message(int sock_fd, message_t &msg)
     size_t write_len = sizeof(msg.header) + msg.header.msg_len; 
     size_t bytes_written = sock_writen(sock_fd, &msg, write_len);
     if (bytes_written < write_len) {
+        log(LogPriority::ERROR, "failure to write message: wrote: %lu, expected: %lu",
+                bytes_written, write_len);
         return -1;
     }
     return 0;

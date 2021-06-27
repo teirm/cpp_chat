@@ -6,6 +6,7 @@ add_executable(broadcaster_tests
 
 target_link_libraries(broadcaster_tests
                       PRIVATE Catch2::Catch2WithMain
+                      PRIVATE io_mplex
                       PRIVATE net_common
                       PRIVATE utilities_common
                       PRIVATE pthread)
