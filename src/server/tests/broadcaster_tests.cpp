@@ -11,6 +11,7 @@
 
 #include <catch2/catch_all.hpp>
 
+#include <iostream>
 #include <memory>
 #include <string>
 #include <vector>
@@ -58,4 +59,14 @@ TEST_CASE("broadcaster broadcast message", "[broadcast-msg]") {
     broad_caster.broadcast_msg(sending_client.second.write_pipe, std::move(message));
     
     std::this_thread::sleep_for(2000ms);
+    
+    for (auto &test_client : test_clients) {
+        if (test_client.second.write_pipe != sending_client.second.write_pipe) {
+            message_t received_msg;
+            int rc = read_message(test_client.second.read_pipe, received_msg);
+            REQUIRE(rc == 0);
+            REQUIRE(strncmp(received_msg.message, "moo", strlen("moo")) == 0);
+        }
+    }
+
 }
