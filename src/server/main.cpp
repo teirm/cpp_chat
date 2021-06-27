@@ -30,11 +30,6 @@ int main(int argc, char *argv[])
     parser.add_flag("port", port, "port for server to use");
     parser.add_flag("address", address, "address for server");
 
-    if (argc != 3) {
-        log(LogPriority::ERROR, "Insufficient arguments provided\n");
-        exit(EXIT_FAILURE);
-    }
-
     int rc = parser.parse_args(argc, argv);
     if (rc) {
         log(LogPriority::ERROR, "Unable to parse arguments: %d\n", rc);

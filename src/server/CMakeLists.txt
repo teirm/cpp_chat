@@ -20,3 +20,6 @@ target_link_libraries(cpp_chat_server
                       PRIVATE utilities_common
                       PRIVATE parseflagscpp
                       PRIVATE io_mplex)
+
+# add the subdirectory for tests
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/tests)

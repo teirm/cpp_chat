@@ -36,7 +36,6 @@ BroadCaster::~BroadCaster()
     process_.join();
 }
 
-
 ////
 // @brief read a message from the client
 //
@@ -55,7 +54,6 @@ void BroadCaster::read_message(int client_fd)
         add_event({EventType::DIRECT_MSG, client_fd, nullptr, std::move(message)});
     }
 }
-
 
 //// 
 // @brief add an event to the BroadCaster
