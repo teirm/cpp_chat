@@ -14,4 +14,8 @@ target_link_libraries(broadcaster_tests
 target_include_directories(broadcaster_tests
                            PRIVATE ${PROJECT_SOURCE_DIR}/include)
 
+set_target_properties(broadcaster_tests
+                      PROPERTIES CXX_EXTENSIONS OFF
+                                 RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/tests)
+
 catch_discover_tests(broadcaster_tests)

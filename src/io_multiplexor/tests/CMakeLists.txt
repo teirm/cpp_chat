@@ -11,4 +11,8 @@ target_link_libraries(io_multiplexor_tests
 target_include_directories(io_multiplexor_tests
                            PRIVATE ${PROJECT_SOURCE_DIR}/include)
 
+set_target_properties(io_multiplexor_tests
+                      PROPERTIES CXX_EXTENSIONS OFF
+                                 RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/tests)
+
 catch_discover_tests(io_multiplexor_tests)

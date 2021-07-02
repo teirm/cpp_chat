@@ -6,7 +6,8 @@ add_executable(cpp_chat_server
 
 # disable gnu C++ extensions
 set_target_properties(cpp_chat_server
-                      PROPERTIES  CXX_EXTENSIONS OFF)
+                      PROPERTIES  CXX_EXTENSIONS OFF
+                                  RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
 
 # specify include directory for server 
 target_include_directories(cpp_chat_server
