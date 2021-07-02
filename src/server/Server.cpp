@@ -13,8 +13,8 @@
 #include <io_multiplexor/IoMultiplexorFactory.hpp>
 
 #include <exception>
+#include <thread>
 
-#include <sys/epoll.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -54,25 +54,21 @@ Server::Server(std::string address, std::string port, unsigned int max_conn):
     if (rc != 0) {
         throw std::runtime_error("Unable to setup pipe\n");
     }
+   
+    is_running_ = true;
+    handler_ = std::thread(&Server::handle_clients, std::ref(*this));
 }
 
-int Server::start()
-{
-    is_running_ = true; 
-    handle_clients();
-
-    return 0;
-}
-
-int Server::stop()
+Server::~Server()
 {
     is_running_ = false;
-    char stop_char = 'c';
-    int bytes_written = write(stop_channel_.write_pipe, &stop_char, 1);
-    if (bytes_written != 1) {
-        throw std::runtime_error("failed to stop server\n");
+    const char *stop_char = "0";
+    log(LogPriority::INFO, "Shutting down server\n");
+    if (write(stop_channel_.write_pipe, &stop_char, 1) != 1) {
+        log(LogPriority::ERROR, "Failed to stop server -- aborting\n");
+        std::abort(); 
     }
-    return 0; 
+    handler_.join();
 }
 
 void Server::handle_clients()
@@ -128,5 +124,6 @@ void Server::handle_clients()
                 }
             }
         }
+        events.clear();
     }
 }
