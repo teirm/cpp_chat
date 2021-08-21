@@ -1,0 +1,12 @@
+23 June 2021
+
+* Need to add mandatory arguments to ParseArgs -- DONE
+* Need to write broadcaster tests              -- DONE
+
+11 August 2021
+
+* Clean up server code to be more modern C++
+* Learn how to use text view to display text    -- DONE
+* Begin work on client
+
+

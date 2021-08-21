@@ -6,3 +6,6 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/io_multiplexor)
 
 # add subdirectory for the server code
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/server)
+
+# add subidrectory for the client code
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/client)
