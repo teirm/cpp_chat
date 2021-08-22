@@ -50,7 +50,7 @@ Server::Server(std::string address, std::string port, unsigned int max_conn):
         throw std::runtime_error("Unable to setup listening socket\n");
     }
 
-    rc = io_mplex_->add({0, MPLEX_IN, stop_channel_.read_pipe});
+    rc = io_mplex_->add({0, MPLEX_IN, stop_channel_.get_read_end()});
     if (rc != 0) {
         throw std::runtime_error("Unable to setup pipe\n");
     }
@@ -62,9 +62,8 @@ Server::Server(std::string address, std::string port, unsigned int max_conn):
 Server::~Server()
 {
     is_running_ = false;
-    const char *stop_char = "0";
     log(LogPriority::INFO, "Shutting down server\n");
-    if (write(stop_channel_.write_pipe, &stop_char, 1) != 1) {
+    if (stop_channel_.write("0") != 1) {
         log(LogPriority::ERROR, "Failed to stop server -- aborting\n");
         std::abort(); 
     }
@@ -112,7 +111,7 @@ void Server::handle_clients()
                         log(LogPriority::ERROR, "failed to terminate socket\n");
                     }
                 } 
-            } else if (event.fd == stop_channel_.read_pipe) {
+            } else if (event.fd == stop_channel_.get_read_end()) {
                 log(LogPriority::INFO, "received shutdown\n");
                 break;
             } else {

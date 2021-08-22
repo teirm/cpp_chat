@@ -51,17 +51,17 @@ TEST_CASE("broadcaster broadcast message", "[broadcast-msg]") {
     for (auto &test_client : test_clients) {
         test_client.first = "client" + std::to_string(index);
         index++;
-        broad_caster.add_client(test_client.first.c_str(), test_client.second.write_pipe);
-        REQUIRE(io_mplex->add({0, MPLEX_IN | MPLEX_ONESHOT, test_client.second.read_pipe}) == 0);
-        INFO("Client: " << test_client.first << " fd: " << test_client.second.read_pipe);
+        broad_caster.add_client(test_client.first.c_str(), test_client.second.get_write_end());
+        REQUIRE(io_mplex->add({0, MPLEX_IN | MPLEX_ONESHOT, test_client.second.get_read_end()}) == 0);
+        INFO("Client: " << test_client.first << " fd: " << test_client.second.get_read_end());
     }
     
     // broadcast a message from a single client
     auto &sending_client = test_clients.at(2);
-    REQUIRE(io_mplex->remove(sending_client.second.read_pipe) == 0);
+    REQUIRE(io_mplex->remove(sending_client.second.get_read_end()) == 0);
 
     message_t message{{4, 2, nullptr}, "moo"};
-    broad_caster.broadcast_msg(sending_client.second.write_pipe, std::move(message));
+    broad_caster.broadcast_msg(sending_client.second.get_write_end(), std::move(message));
 
     event_container_t  test_events(NUM_CLIENTS);
     int remaining_responses = NUM_CLIENTS - 1;
@@ -90,14 +90,14 @@ TEST_CASE("broadcaster direct message", "[direct-msg]") {
     Channel receiver;
     auto broad_caster = BroadCaster();
     
-    broad_caster.add_client("sender", sender.write_pipe);
-    broad_caster.add_client("receiver", receiver.write_pipe);   
+    broad_caster.add_client("sender", sender.get_write_end());
+    broad_caster.add_client("receiver", receiver.get_write_end());   
 
     auto io_mplex = IoMultiplexorFactory::get_multiplexor(2);
     REQUIRE(io_mplex);
-    REQUIRE(io_mplex->add({0, MPLEX_IN | MPLEX_ONESHOT, receiver.read_pipe}) == 0);
+    REQUIRE(io_mplex->add({0, MPLEX_IN | MPLEX_ONESHOT, receiver.get_read_end()}) == 0);
 
-    broad_caster.direct_msg(sender.write_pipe, {{5, 2, "receiver"}, "test"});
+    broad_caster.direct_msg(sender.get_write_end(), {{5, 2, "receiver"}, "test"});
     
     event_container_t test_events;
     int events = io_mplex->wait(nullptr, test_events);

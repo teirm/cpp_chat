@@ -34,7 +34,7 @@ Client::Client(std::string address, std::string port):
         throw std::runtime_error("unable to allocate multiplexor\n");
     }
 
-    int rc = io_mplex_->add({0, MPLEX_IN, stop_channel_.read_pipe});
+    int rc = io_mplex_->add({0, MPLEX_IN, stop_channel_.get_read_end()});
     if (rc != 0) {
         throw std::runtime_error("unable to setup stop channel\n");
     }
@@ -88,8 +88,7 @@ auto Client::disconnect() -> int
         // the receiving thread must be running / joinable 
         // for there to be something to stop
         if (handler_.joinable()) {
-            const char *stop_char = "0";
-            if (write(stop_channel_.write_pipe, &stop_char, 1) != 1) {
+            if (stop_channel_.write("0") != 1) {
                 rc = -1;
                 log(LogPriority::ERROR, "failed to stop server\n");
                 return rc;
