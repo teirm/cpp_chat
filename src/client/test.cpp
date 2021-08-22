@@ -67,11 +67,18 @@ struct TextLog : public Bordered<Log> {
     TextLog() : Bordered<Log>{border::rounded()} {  } 
 };
 
+struct EntryField : public Bordered<Line_edit> {
+    public:
+    Bordered<Line_edit>& border = *this;
+    Line_edit& field = border.wrapped;
+
+    EntryField() : Bordered<Line_edit>{border::rounded()} { }
+};
 
 struct UserPane : public layout::Vertical<> {
     public:
     TextLog      &file_contents = this->make_child<TextLog>();
-    Line_edit    &path_name     = this->make_child<Line_edit>();
+    Line_edit    &path_name     = this->make_child<Line_edit>("Type here");
     UserPane() {
         using namespace pipe;
         *this | fixed_width(200);

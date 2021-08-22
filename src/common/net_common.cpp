@@ -200,7 +200,7 @@ int connect_socket(const char *address, const char *port, bool is_blocking)
         }
         rc = connect(socket_fd, rp->ai_addr, rp->ai_addrlen);
         if (rc == 0) {
-            break;;
+            break;
         }
         close(socket_fd);
     }
@@ -211,7 +211,7 @@ int connect_socket(const char *address, const char *port, bool is_blocking)
         // check for error condition where no connections could be 
         // made
         log(LogPriority::ERROR, "unable to connect any results for %s:%s\n", address, port);
-        return 1;
+        return -1;
     }
     return socket_fd;
 }
